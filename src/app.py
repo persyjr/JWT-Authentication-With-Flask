@@ -11,6 +11,8 @@ from api.models import db
 from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
+from flask_jwt_extended import JWTManager
+from api.models import TokenBlockedList
 
 #from models import Person
 
@@ -18,6 +20,15 @@ ENV = os.getenv("FLASK_ENV")
 static_file_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../public/')
 app = Flask(__name__)
 app.url_map.strict_slashes = False
+app.config["JWT_SECRET_KEY"] = os.environ.get('FLASK_APP_KEY')  # Check key at .env
+jwt = JWTManager(app)
+
+# Funcion para validar el token, se coloco de primero entre las inicializaciones de la APP
+@jwt.token_in_blocklist_loader
+def checkValidToken(jwt_header, jwt_payload: dict) -> bool:
+    jti = jwt_payload["jti"]
+    token=TokenBlockedList.query.filter_by(token=jti).first()
+    return token is not None
 
 # database condiguration
 db_url = os.getenv("DATABASE_URL")
